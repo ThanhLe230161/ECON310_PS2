@@ -28,8 +28,6 @@ classdef solve
 
             alen = par.alen; % Grid size for a.
             agrid = par.agrid; % Grid for a (state and choice).
-            agrid = agrid(:);  % Force once at beginning!
-
 
             ylen = par.ylen; % Grid size for y.
             ygrid = par.ygrid; % Grid for y.
@@ -61,10 +59,9 @@ classdef solve
     
                     for i = 1:ylen % Loop over the y-states.
 
-                        if T-age+1 < tr % Workers get a salary; retirees get a pension proportional to last drawn salary.
-                            t = T - age + 1;     
-                            yt = kappa * par.G(t) * ygrid(i);
-                            ev = v1(:,T-age+2,i);
+                        if T-age+1 >= tr % Workers get a salary; retirees get a pension proportional to last drawn salary.
+                            yt = kappa*ygrid(i);
+                            ev = yt;
                         else
                             yt = ygrid(i);
                             ev = squeeze(v1(:,T-age+2,:))*pmat(i,:)';
@@ -73,9 +70,8 @@ classdef solve
                         for p = 1:alen % Loop over the a-states.
                             
                             % Consumption
-                            resources = (1+r)*agrid(p) + yt;  % scalar
-                            ct = resources - agrid;  % <-- Expand scalar into full vector
-                            ct(ct<0.0) = 0.0;                  % No negative consumption allowed
+                            ct = agrid(p)+yt-(agrid./(1+r)); % Possible values for consumption, c = a + y - (a'/(1+r)), given a and y.
+                            ct(ct<0.0) = 0.0;
     
                             % Solve the maximization problem.
                             vall = model.utility(ct,par) + beta*ev; % Compute the value function for each choice of a', given a.

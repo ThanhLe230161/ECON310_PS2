@@ -22,7 +22,7 @@ classdef simulate
             apol = sol.a; % Policy function for capital.
             cpol = sol.c; % Policy function for consumption.
 
-            T = par.T; % Time periods.
+            TT = par.TT; % Time periods.
             NN = par.NN; % People.
             T = par.T; % Life span.
             tr = par.tr; % Retirement.
@@ -31,11 +31,11 @@ classdef simulate
             ygrid = par.ygrid; % Exogenous income.
             pmat = par.pmat; % Transition matrix.
 
-            ysim = nan(T,NN); % Container for simulated income.
-            asim = nan(T,NN); % Container for simulated savings.
-            tsim = nan(T,NN); % Container for simulated age.
-            csim = nan(T,NN); % Container for simulated consumption.
-            usim = nan(T,NN); % Container for simulated utility.
+            ysim = nan(TT,NN); % Container for simulated income.
+            asim = nan(TT,NN); % Container for simulated savings.
+            tsim = nan(TT,NN); % Container for simulated age.
+            csim = nan(TT,NN); % Container for simulated consumption.
+            usim = nan(TT,NN); % Container for simulated utility.
             
             %% Begin simulation.
             
@@ -46,9 +46,7 @@ classdef simulate
 
             y0_ind = randsample(par.ylen,NN,true,pmat0(1,:))'; % Index for initial income.
             a0_ind = randsample(par.alen,NN,true)'; % Index for initial wealth.
-            %t0_ind = randsample(T,NN,true)'; % Index for initial wealth.
-            t0_ind = randsample(T,NN,true)';   % everyone starts in period 1 (we’ll interpret that as age 0)
-
+            t0_ind = randsample(T,NN,true)'; % Index for initial wealth.
             yr = nan(NN,1); % Retirement income.
 
             for i = 1:NN % Person loop.
@@ -74,12 +72,10 @@ classdef simulate
             end
 
             usim(1,:) = model.utility(csim(1,:),par); % Utility in period 0 given a0.
-           
-
 
             %% Simulate endogenous variables.
 
-            for j = 2:T % Time loop.
+            for j = 2:TT % Time loop.
                 for i = 1:NN % Person loop.
 
                     age = tsim(j-1,i)+1; % Age in period t.
@@ -93,7 +89,7 @@ classdef simulate
                         end
 
                         tsim(j,i) = age; % Age in period t.
-                        at_ind = find(asim(j-1,i)==agrid); % Savings choice in the previous period is the state today. Find where the laTer is on the grid.
+                        at_ind = find(asim(j-1,i)==agrid); % Savings choice in the previous period is the state today. Find where the latter is on the grid.
                         csim(j,i) = cpol(at_ind,age,y0_ind(i)); % Consumption in period t.
                         asim(j,i) = apol(at_ind,age,y0_ind(i)); % Savings for period t+1.
                         usim(j,i) = model.utility(csim(j,i),par); % Utility in period t.
@@ -116,10 +112,7 @@ classdef simulate
             sim.tsim = tsim; % Simulated age.
             sim.csim = csim; % Simulated consumption.
             sim.usim = usim; % Simulated utility.
-            
-            % —— NEW: compute life‐cycle profiles ——
-            sim.avg_c = mean(csim, 2);   % T×1 vector of average consumption by age
-            sim.avg_a = mean(asim, 2);   % T×1 vector of average savings by age
+             
         end
         
     end

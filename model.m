@@ -21,39 +21,34 @@ classdef model
             
             %% Preferences.
 
-            par.T = 50; % Last period of life.
+            par.T = 61; % Last period of life.
             par.tr = 41; % First period of retirement.
             
-            par.beta = 0.94; % Discount factor: Lower values of this mean that consumers are impatient and consume more today.
-            par.gamma = 2.0; % CRRA: Higher values of this mean that consumers are risk averse and do not want to consume too much today.
+            par.beta = 0.96; % Discount factor: Lower values of this mean that consumers are impatient and consume more today.
+            par.sigma = 2.0; % CRRA: Higher values of this mean that consumers are risk averse and do not want to consume too much today.
             
             assert(par.T > par.tr,'Cannot retire after dying.\n')
             assert(par.beta > 0.0 && par.beta < 1.0,'Discount factor should be between 0 and 1.\n')
-            assert(par.gamma > 0.0,'CRRA should be at least 0.\n')
+            assert(par.sigma > 0.0,'CRRA should be at least 0.\n')
 
             %% Prices and Income.
 
             par.r = 0.03; % Interest rate.
             par.kappa = 0.6; % Share of income as pension.
-           %% Insert Gt        
-            G_table = readtable('gt_table1.csv');  % Read as table
-            par.G = G_table.Gt;                    % Extract only Gt column
-            par.G = par.G ./ par.G(1);              % Normalize by first entry
-            assert(length(par.G) == par.T, 'The number of G_t values must equal T.');
-%%
-            par.gamma_eps = 0.07; % Std. dev of productivity shocks.
+
+            par.sigma_eps = 0.07; % Std. dev of productivity shocks.
             par.rho = 0.85; % Persistence of AR(1) process.
             par.mu = 0.0; % Intercept of AR(1) process.
 
             assert(par.kappa >= 0.0 && par.kappa <= 1.0,'The share of income received as pension should be from 0 to 1.\n')
-            assert(par.gamma_eps > 0,'The standard deviation of the shock must be positive.\n')
+            assert(par.sigma_eps > 0,'The standard deviation of the shock must be positive.\n')
             assert(abs(par.rho) < 1,'The persistence must be less than 1 in absolute value so that the series is stationary.\n')
 
             %% Simulation parameters.
 
             par.seed = 2025; % Seed for simulation.
-            par.TT = par.T; % Number of time periods.
-            par.NN = 3000; % Number of people.
+            par.TT = 61; % Number of time periods.
+            par.NN = 10000; % Number of people.
 
         end
         
@@ -79,7 +74,7 @@ classdef model
             assert(par.ylen > 3,'Grid size for A should be positive and greater than 3.\n')
             assert(par.m > 0,'Scaling parameter for Tauchen should be positive.\n')
             
-            [ygrid,pmat] = model.tauchen(par.mu,par.rho,par.gamma_eps,par.ylen,par.m); % Tauchen's Method to discretize the AR(1) process for log productivity.
+            [ygrid,pmat] = model.tauchen(par.mu,par.rho,par.sigma_eps,par.ylen,par.m); % Tauchen's Method to discretize the AR(1) process for log productivity.
             par.ygrid = exp(ygrid); % The AR(1) is in logs so exponentiate it to get A.
             par.pmat = pmat; % Transition matrix.
         
@@ -87,11 +82,11 @@ classdef model
         
         %% Tauchen's Method
         
-        function [y,pi] = tauchen(mu,rho,gamma,N,m)
+        function [y,pi] = tauchen(mu,rho,sigma,N,m)
             %% Construct equally spaced grid.
         
             ar_mean = mu/(1-rho); % The mean of a stationary AR(1) process is mu/(1-rho).
-            ar_sd = gamma/((1-rho^2)^(1/2)); % The std. dev of a stationary AR(1) process is gamma/sqrt(1-rho^2)
+            ar_sd = sigma/((1-rho^2)^(1/2)); % The std. dev of a stationary AR(1) process is sigma/sqrt(1-rho^2)
             
             y1 = ar_mean-(m*ar_sd); % Smallest grid point is the mean of the AR(1) process minus m*std.dev of AR(1) process.
             yn = ar_mean+(m*ar_sd); % Largest grid point is the mean of the AR(1) process plus m*std.dev of AR(1) process.
@@ -104,9 +99,9 @@ classdef model
             ymatk = repmat(y,N,1); % States next period.
             ymatj = mu+rho*ymatk'; % States this period.
         
-	        pi = normcdf(ymatk,ymatj-(d/2),gamma) - normcdf(ymatk,ymatj+(d/2),gamma); % Transition probabilities to state 2, ..., N-1.
-	        pi(:,1) = normcdf(y(1),mu+rho*y-(d/2),gamma); % Transition probabilities to state 1.
-	        pi(:,N) = 1 - normcdf(y(N),mu+rho*y+(d/2),gamma); % Transition probabilities to state N.
+	        pi = normcdf(ymatk,ymatj-(d/2),sigma) - normcdf(ymatk,ymatj+(d/2),sigma); % Transition probabilities to state 2, ..., N-1.
+	        pi(:,1) = normcdf(y(1),mu+rho*y-(d/2),sigma); % Transition probabilities to state 1.
+	        pi(:,N) = 1 - normcdf(y(N),mu+rho*y+(d/2),sigma); % Transition probabilities to state N.
 	        
         end
         
@@ -115,10 +110,10 @@ classdef model
         function u = utility(c,par)
             %% CRRA utility.
             
-            if par.gamma == 1
+            if par.sigma == 1
                 u = log(c); % Log utility.
             else
-                u = (c.^(1-par.gamma))./(1-par.gamma); % CRRA utility.
+                u = (c.^(1-par.sigma))./(1-par.sigma); % CRRA utility.
             end
                         
         end
